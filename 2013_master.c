@@ -6,8 +6,6 @@
 
 //global variables
 
-int directions[50]; //just a large enough number, enough for 50 turns. the program
-                    //will end when it comes to a "0"
 int dirIndex = 0; //which number in the array are we reading?
 int whiteSpeed = 650; //in DPS
 int yellowSpeed = 450;
@@ -22,10 +20,10 @@ int targetDPS = 0;
 int lastPos = 0;
 int lineReading = 0;
 int sonar = 0;
-int dirTurn = 0;
-int dirSide = 0;
-int dirPark = 0;
-int lastTurn = 0;
+//int directions[dirIndex][1] = 0;
+//int directions[dirIndex][2] = 0;
+//int directions[dirIndex][3] = 0;
+//int directions[dirIndex-1][1] = 0;
 int nAtoDValues[3]={0,0,0};
 int red = 0, green = 0, blue = 0;
 int stopSensor, lineSensor, lineColor;
@@ -34,18 +32,20 @@ bool parking = false;
 bool resetMotors = false;
 int count = 0;
 const int parkDistance = 1030;
+int directions[10][4]; //just a large enough number, enough for 50 turns. the program
+                    //will end when it comes to a "0"
 
 void intDirections() //feed the directions into the array
 {
-  directions[0] = 110;
-  directions[1] = 310;
-  directions[2] = 721;
-  directions[3] = 320;
-  directions[4] = 520;
-  directions[5] = 510;
-  directions[6] = 210;
-  directions[7] = 611;
-  directions[8] = 310;
+  directions[0][0] = 110;
+  directions[1][0] = 110;
+  directions[2][0] = 721;
+  directions[3][0] = 320;
+  directions[4][0] = 520;
+  directions[5][0] = 510;
+  directions[6][0] = 210;
+  directions[7][0] = 611;
+  directions[8][0] = 310;
   //.....
   //0**=start/end program;
   //1**=straight;
@@ -80,22 +80,22 @@ void squareLine(int direction);
 task main()
 {
   intDirections();
+  dirDecode();
   StartTask(sensors); //start all our other tasks
   StartTask(motors);
   StartTask(line);
   jumpTo();
-  dirDecode();
   bFloatDuringInactiveMotorPWM = false; //make sure the motors brake, not float
   // resetMotors = true;
   while(true)
   {
-    if(directions[dirIndex] == 000)
+    if(directions[dirIndex][0] == 000)
     {
       StopAllTasks();
     }
     nMotorPIDSpeedCtrl[left] = mtrSpeedReg; //turn off the PID for the motors,
     nMotorPIDSpeedCtrl[right] = mtrSpeedReg; //better reaction time
-    if(lastTurn == 2 && dirSide == 2)  //if our last turn was a left turn AND we
+    if(directions[dirIndex-1][1] == 2 && directions[dirIndex][2] == 2)  //if our last turn was a left turn AND we
     {              //are going to follow the opposite line, move over to that side
       turning = true;
       motor[left] = 50;
@@ -106,7 +106,7 @@ task main()
       motor[right] = 0;
       turning = false;
     }
-    if(lastTurn == 3 && dirSide == 1) //same as last, except this is done if
+    if(directions[dirIndex-1][1] == 3 && directions[dirIndex][2] == 1) //same as last, except this is done if
     {                                 //last turn was a right, AND we are
       turning = true;                 //following the left line
       motor[right] = 50;
@@ -121,7 +121,7 @@ task main()
     targetDPS = 450;
     lineFollow = true;
     wait1Msec(100);
-    if(dirTurn == 6 || dirTurn == 7) // if parking...
+    if(directions[dirIndex][1] == 6 || directions[dirIndex][1] == 7) // if parking...
     {
       for(int i = 0; i < 30; i = i) //if we have seen blue continually for a
       {                             //certain amount of time,
@@ -138,7 +138,7 @@ task main()
       }                                                //viewing variables over BT
       resetMotors = true;
       wait1Msec(20);
-      while(lastPos < ((parkDistance * (dirPark - 1)) + 210))
+      while(lastPos < ((parkDistance * (directions[dirIndex][3] - 1)) + 210))
       {
         wait1Msec(10);
       }
@@ -148,7 +148,7 @@ task main()
       resetMotors = true;
       wait1Msec(500);
       turning = true;
-      switch(dirTurn) // which side of the road are we parking on?
+      switch(directions[dirIndex][1]) // which side of the road are we parking on?
       {
         case 6:
         parkLeft();
@@ -171,7 +171,7 @@ task main()
 	    wait1Msec(500);
 	    turning = true;
 	    // squareLine(1);
-	    switch(dirTurn) // go to the respective turning functioin
+	    switch(directions[dirIndex][1]) // go to the respective turning functioin
 	    {
 	    case 1:	 goStraight();	break;
 	    case 2:	 turnLeft();	break;
@@ -180,7 +180,7 @@ task main()
 	    case 5:	 turnRightL();	break;
 	    }
     }
-    if(dirTurn == 9) //for exiting the city
+    if(directions[dirIndex][1] == 9) //for exiting the city
     {
       while(lineColor != 5) {}
       resetMotors = true;
@@ -199,13 +199,13 @@ task main()
     }
     turning = false;
     resetMotors = true;
-    lastTurn = dirTurn; // needed for if we need to move over to the
+    //directions[dirIndex-1][1] = directions[dirIndex][1]; // needed for if we need to move over to the
     dirIndex ++;        //other side of the road after turn
     // if(dirIndex == 14) // for an endless loop on our practice mat
     // {
       // dirIndex = 0;
     // }
-    dirDecode();
+    //dirDecode();
   }
 }
 
@@ -252,7 +252,7 @@ task line()
       if(error > 0) {error = error * 2.5;}        //
       turn = ((kp * error) + (ki * integral) + (kd * derivitive)) / 100;//
       lastError = error;                         //
-      if(turning == true || (dirTurn == 6 || dirTurn == 7))
+      if(turning == true || (directions[dirIndex][1] == 6 || directions[dirIndex][1] == 7))
       {
 	      targetDPS = 450;
 	      kp = 23;
@@ -284,19 +284,24 @@ task line()
 
 void dirDecode() // to separate a 3 digit number into 3 separate numbers
 {
-  dirTurn = directions[dirIndex] / 100; //take advantage of the fact that integers
-  dirSide = (directions[dirIndex] / 10) - (dirTurn * 10); //round to the nearest
-  dirPark = directions[dirIndex] - ((dirTurn * 100) + (dirSide * 10)); //whole number
-  eraseDisplay();
-  nxtDisplayRICFile(0, 0, "nKISA.RIC"); // display our logo
-  nxtDisplayBigStringAt(65, 35, "%d", dirIndex); //and which turn we are at
-}                                                // in the program
+	int index = 0;
+	while(directions[index][0] != 0)
+	{
+  	directions[index][1] = directions[index][0] / 100; //take advantage of the fact that integers
+  	directions[index][2] = (directions[index][0] / 10) - (directions[index][1] * 10); //round to the nearest
+  	directions[index][3] = directions[index][0] - ((directions[index][1] * 100) + (directions[index][2] * 10)); //whole number
+  	eraseDisplay();
+  	nxtDisplayRICFile(0, 0, "nKISA.RIC"); // display our logo
+  	nxtDisplayBigStringAt(65, 35, "%d", dirIndex); //and which turn we are at
+  	index++;																			// in the program
+  }
+}
 
 task sensors()
 {
   while(true)
   {
-    switch(dirSide)
+    switch(directions[dirIndex][2])
     {
     case 1: // if following left line
       switch (SensorValue[colorLeft]) //assign numbers to the left color sensor
@@ -396,7 +401,7 @@ task motors()
     }
     if(lineFollow == true) //if following the line, figure out
     {                      //how to control the motors
-      switch(dirSide)
+      switch(directions[dirIndex][2])
       {
         case 1:
         powerLeft = powerOutput + turn;
@@ -424,9 +429,9 @@ task motors()
 }
 
 void goStraight() // I'm not going comment all the turn functions,
-{                 //because the're all pretty straight forward
+{                 //because the're all pretty straight forward,
   nSyncedMotors = synchBC;
-  nSyncedTurnRatio = -100;
+  nSyncedTurnRatio = 100;
   motor[left] = 45;
   while(nMotorEncoder[left] <= 1000) {}
   motor[left] = 0;
@@ -482,6 +487,7 @@ void turnRightL()
   motor[left] = 45;
   while(nMotorEncoder[left] <= 1350) {}
   motor[left] = 0;
+  //motorset(450 45 1350)
 }
 
 void squareLine(int direction) // square up on the line using both sensors
