@@ -7,11 +7,11 @@
 //global variables
 
 int dirIndex = 0; //which number in the array are we reading?
-int whiteSpeed = 650; //in DPS
-int yellowSpeed = 450;
+int whiteSpeed = 520; //in DPS
+int yellowSpeed = 312;
 int powerOutput = 0;
 bool lineFollow = false;
-int mean = 292;
+int mean = 260;
 float turn = 0;
 int powerLeft = 0;
 int powerRight = 0;
@@ -32,20 +32,22 @@ bool parking = false;
 bool resetMotors = false;
 int count = 0;
 const int parkDistance = 1030;
+int m_targetDistance = 0;
+int m_targetSpeed = 0;
+float m_turnRatio = 0;
+bool m_controlType = false;
+bool m_distanceReached = false;
 int directions[10][4]; //just a large enough number, enough for 50 turns. the program
                     //will end when it comes to a "0"
 
 void intDirections() //feed the directions into the array
 {
   directions[0][0] = 110;
-  directions[1][0] = 110;
-  directions[2][0] = 721;
-  directions[3][0] = 320;
+  directions[1][0] = 310;
+  directions[2][0] = 310;
+  directions[3][0] = 310;
   directions[4][0] = 520;
-  directions[5][0] = 510;
-  directions[6][0] = 210;
-  directions[7][0] = 611;
-  directions[8][0] = 310;
+  directions[5][0] = 320;
   //.....
   //0**=start/end program;
   //1**=straight;
@@ -76,6 +78,7 @@ void parkLeft();
 void parkRight();
 void exit();
 void squareLine(int direction);
+void motorSet(int distance, int speed, float ratio, bool control);
 
 task main()
 {
@@ -95,28 +98,31 @@ task main()
     }
     nMotorPIDSpeedCtrl[left] = mtrSpeedReg; //turn off the PID for the motors,
     nMotorPIDSpeedCtrl[right] = mtrSpeedReg; //better reaction time
-    if(directions[dirIndex-1][1] == 2 && directions[dirIndex][2] == 2)  //if our last turn was a left turn AND we
-    {              //are going to follow the opposite line, move over to that side
-      turning = true;
-      motor[left] = 50;
-      while(nMotorEncoder[left] <= 375) {}
-      motor[left] = 0;
-      motor[right] = 50;
-      while(nMotorEncoder[right] <= 375) {}
-      motor[right] = 0;
-      turning = false;
-    }
-    if(directions[dirIndex-1][1] == 3 && directions[dirIndex][2] == 1) //same as last, except this is done if
-    {                                 //last turn was a right, AND we are
-      turning = true;                 //following the left line
-      motor[right] = 50;
-      while(nMotorEncoder[right] <= 375) {}
-      motor[right] = 0;
-      motor[left] = 50;
-      while(nMotorEncoder[left] <= 375) {}
-      motor[left] = 0;
-      turning = false;
-    }
+    if(dirIndex>1)
+    {
+    	if(directions[dirIndex-1][1] == 2 && directions[dirIndex][2] == 2)  //if our last turn was a left turn AND we
+   			{              //are going to follow the opposite line, move over to that side
+    		  turning = true;
+   		  	motor[left] = 50;
+     			while(nMotorEncoder[left] <= 200) {}
+     			motor[left] = 0;
+		      motor[right] = 50;
+		      while(nMotorEncoder[right] <= 200) {}
+		      motor[right] = 0;
+		      turning = false;
+		     }
+ 		   if(directions[dirIndex-1][1] == 3 && directions[dirIndex][2] == 1) //same as last, except this is done if
+ 		   {                                 //last turn was a right, AND we are
+    		 turning = true;                 //following the left line
+    		 motor[right] = 50;
+	       while(nMotorEncoder[right] <= 200) {}
+	       motor[right] = 0;
+	       motor[left] = 50;
+ 	       while(nMotorEncoder[left] <= 200) {}
+  	     motor[left] = 0;
+	       turning = false;
+	    }
+	  }
     resetMotors = true;
     targetDPS = 450;
     lineFollow = true;
@@ -162,6 +168,7 @@ task main()
     {
       while(stopSensor != 5) // while the stopSensor is not seeing a stop sign
       {
+      	writeDebugStreamLine("stopsensor: %d", stopSensor);
         wait1Msec(10); // keep following the line
       }
 	    lineFollow = false;
@@ -262,10 +269,10 @@ task line()
       {
 	      switch(lineColor)
 	      {
-	        case 2: targetDPS = whiteSpeed; kp = 10; ki = 0.1; break; //go slower
-	        case 4: targetDPS = yellowSpeed; kp = 20; ki = 0.3; break; //on yellow
-	        case 6: targetDPS = whiteSpeed; kp = 10; ki = 0.1; break; // roads
-	        default: targetDPS = yellowSpeed; kp = 15; ki = 0.1; break;
+	        case 2: targetDPS = yellowSpeed; kp = 20; ki = 0.1; mean = 182;  break; //go slower
+	        case 4: targetDPS = yellowSpeed; kp = 25; ki = 0.3; mean = 185; break; //on yellow
+	        case 6: targetDPS = whiteSpeed; kp = 10; ki = 0.1; mean = 240; break; // roads
+	        default: targetDPS = yellowSpeed; kp = 15; ki = 0.1; mean = 240; break;
 	      }
 	    }
     }
@@ -428,9 +435,21 @@ task motors()
   }
 }
 
+void motorSet(int distance, int speed, float ratio, bool control)
+{
+	m_targetDistance = distance;
+	m_targetSpeed = speed;
+	m_turnRatio = ratio;
+	m_controlType = control;
+	while(control == false || m_distanceReached == true)
+	{
+		wait1Msec(100);
+	}
+}
+
 void goStraight() // I'm not going comment all the turn functions,
-{                 //because the're all pretty straight forward,
-  nSyncedMotors = synchBC;
+{                 // because the're all pretty straight forward,
+  nSyncedMotors = synchCB;
   nSyncedTurnRatio = 100;
   motor[left] = 45;
   while(nMotorEncoder[left] <= 1000) {}
@@ -439,16 +458,16 @@ void goStraight() // I'm not going comment all the turn functions,
 
 void turnLeft()
 {
-  nSyncedMotors = synchCB;
-  nSyncedTurnRatio = -100;
+  nSyncedMotors = synchBC;
+  nSyncedTurnRatio = 100;
   motor[right] = 45;
   while(nMotorEncoder[right] <= 600) {}
   motor[right] = 0;
   wait1Msec(100);
   resetMotors = true;
   wait1Msec(100);
-  nSyncedMotors = synchCB;
-  nSyncedTurnRatio = 100;
+  nSyncedMotors = synchBC;
+  nSyncedTurnRatio = -120;
   motor[right] = 45;
   while(SensorValue(colorLeft) != 5) {}
   motor[right] = 0;
@@ -456,16 +475,16 @@ void turnLeft()
 
 void turnRight()
 {
-  nSyncedMotors = synchBC;
-  nSyncedTurnRatio = -100;
+  nSyncedMotors = synchCB;
+  nSyncedTurnRatio = 100;
   motor[left] = 45;
-  while(nMotorEncoder[left] <= 600) {}
+  while(nMotorEncoder[left] <= 450) {}
   motor[left] = 0;
   wait1Msec(100);
   resetMotors = true;
   wait1Msec(100);
-  nSyncedMotors = synchBC;
-  nSyncedTurnRatio = 100;
+  nSyncedMotors = synchCB;
+  nSyncedTurnRatio = -120;
   motor[left] = 45;
   while(SensorValue(colorRight) != 5) {}
   motor[left] = 0;
@@ -474,20 +493,27 @@ void turnRight()
 void turnLeftL()
 {
   nSyncedMotors = synchCB;
-  nSyncedTurnRatio = -43;
-  motor[right] = 45;
-  while(nMotorEncoder[right] <= 1400) {}
-  motor[right] = 0;
+  nSyncedTurnRatio = 65;
+  motor[left] = 45;
+  while(nMotorEncoder[left] <= 720) {}
+  motor[left] = 0;
 }
 
 void turnRightL()
 {
   nSyncedMotors = synchBC;
-  nSyncedTurnRatio = -35;
+  nSyncedTurnRatio = 65;
+  motor[right] = 45;
+  while(nMotorEncoder[right] <= 680) {}
+  motor[right] = 0;
+  wait1Msec(100);
+  resetMotors = true;
+  wait1Msec(100);
+  nSyncedMotors = synchCB;
+  nSyncedTurnRatio = 0;
   motor[left] = 45;
-  while(nMotorEncoder[left] <= 1350) {}
+  while(nMotorEncoder[left] <= 740) {}
   motor[left] = 0;
-  //motorset(450 45 1350)
 }
 
 void squareLine(int direction) // square up on the line using both sensors
