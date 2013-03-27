@@ -31,23 +31,26 @@ bool turning = false;
 bool parking = false;
 bool resetMotors = false;
 int count = 0;
-const int parkDistance = 1030;
+const int parkDistance = 725;
 int m_targetDistance = 0;
 int m_targetSpeed = 0;
 float m_turnRatio = 0;
 bool m_controlType = false;
 bool m_distanceReached = false;
-int directions[10][4]; //just a large enough number, enough for 50 turns. the program
+int directions[19][4]; //just a large enough number, enough for 50 turns. the program
                     //will end when it comes to a "0"
 
 void intDirections() //feed the directions into the array
 {
-  directions[0][0] = 110;
+  directions[0][0] = 120;
   directions[1][0] = 310;
-  directions[2][0] = 310;
+  directions[2][0] = 721;
   directions[3][0] = 310;
-  directions[4][0] = 520;
-  directions[5][0] = 320;
+  directions[4][0] = 310;
+  directions[5][0] = 520;
+  directions[6][0] = 320;
+  directions[7][0] = 611;
+  directions[8][0] = 320;
   //.....
   //0**=start/end program;
   //1**=straight;
@@ -96,6 +99,10 @@ task main()
     {
       StopAllTasks();
     }
+    eraseDisplay();
+    nxtDisplayRICFile(0, 0, "nKISA.RIC"); // displaying our logo
+    nxtDisplayBigStringAt(65, 55, "%d", dirIndex);
+    nxtDisplayStringAt(65, 25, "%d", directions[dirIndex][0]);
     nMotorPIDSpeedCtrl[left] = mtrSpeedReg; //turn off the PID for the motors,
     nMotorPIDSpeedCtrl[right] = mtrSpeedReg; //better reaction time
     if(dirIndex>1)
@@ -144,7 +151,7 @@ task main()
       }                                                //viewing variables over BT
       resetMotors = true;
       wait1Msec(20);
-      while(lastPos < ((parkDistance * (directions[dirIndex][3] - 1)) + 210))
+      while(lastPos < ((parkDistance * (directions[dirIndex][3] - 1)) + 100))
       {
         wait1Msec(10);
       }
@@ -221,10 +228,6 @@ void jumpTo() //a function to jump to a specific point in our directions
   while(nNxtButtonPressed != 3) //while the orange button is NOT pressed...
   {
     bNxtLCDStatusDisplay = true;
-    if(dirIndex < 0) //to keep the index variable from going negative
-    {                //(no negative array slots)
-      dirIndex = 0;
-    }
     if(nNxtButtonPressed == 1) //if the right button is pressed...
     {
       dirIndex ++; //increse the index variable by 1
@@ -233,9 +236,14 @@ void jumpTo() //a function to jump to a specific point in our directions
     {
       dirIndex --; //decrese the index variable by 1.
     }
+    if(dirIndex < 0) //to keep the index variable from going negative
+    {                //(no negative array slots)
+      dirIndex = 0;
+    }
     eraseDisplay();
     nxtDisplayRICFile(0, 0, "nKISA.RIC"); // displaying our logo
-    nxtDisplayBigStringAt(65, 35, "%d", dirIndex);
+    nxtDisplayBigStringAt(65, 55, "%d", dirIndex);
+    nxtDisplayStringAt(65, 25, "%d", directions[dirIndex][0]);
     wait1Msec(200);
   }
 }
@@ -261,15 +269,15 @@ task line()
       lastError = error;                         //
       if(turning == true || (directions[dirIndex][1] == 6 || directions[dirIndex][1] == 7))
       {
-	      targetDPS = 450;
-	      kp = 23;
+	      targetDPS = 300;
+	      kp = 12;
 	      ki = 0.2;
 	    }
 	    else
       {
 	      switch(lineColor)
 	      {
-	        case 2: targetDPS = yellowSpeed; kp = 20; ki = 0.1; mean = 182;  break; //go slower
+	        case 2: targetDPS = yellowSpeed; kp = 15; ki = 0.1; mean = 182;  break; //go slower
 	        case 4: targetDPS = yellowSpeed; kp = 25; ki = 0.3; mean = 185; break; //on yellow
 	        case 6: targetDPS = whiteSpeed; kp = 10; ki = 0.1; mean = 240; break; // roads
 	        default: targetDPS = yellowSpeed; kp = 15; ki = 0.1; mean = 240; break;
@@ -297,9 +305,6 @@ void dirDecode() // to separate a 3 digit number into 3 separate numbers
   	directions[index][1] = directions[index][0] / 100; //take advantage of the fact that integers
   	directions[index][2] = (directions[index][0] / 10) - (directions[index][1] * 10); //round to the nearest
   	directions[index][3] = directions[index][0] - ((directions[index][1] * 100) + (directions[index][2] * 10)); //whole number
-  	eraseDisplay();
-  	nxtDisplayRICFile(0, 0, "nKISA.RIC"); // display our logo
-  	nxtDisplayBigStringAt(65, 35, "%d", dirIndex); //and which turn we are at
   	index++;																			// in the program
   }
 }
@@ -452,7 +457,7 @@ void goStraight() // I'm not going comment all the turn functions,
   nSyncedMotors = synchCB;
   nSyncedTurnRatio = 100;
   motor[left] = 45;
-  while(nMotorEncoder[left] <= 1000) {}
+  while(nMotorEncoder[left] <= 750) {}
   motor[left] = 0;
 }
 
@@ -461,7 +466,7 @@ void turnLeft()
   nSyncedMotors = synchBC;
   nSyncedTurnRatio = 100;
   motor[right] = 45;
-  while(nMotorEncoder[right] <= 600) {}
+  while(nMotorEncoder[right] <= 450) {}
   motor[right] = 0;
   wait1Msec(100);
   resetMotors = true;
@@ -495,8 +500,16 @@ void turnLeftL()
   nSyncedMotors = synchCB;
   nSyncedTurnRatio = 65;
   motor[left] = 45;
-  while(nMotorEncoder[left] <= 720) {}
+  while(nMotorEncoder[left] <= 680) {}
   motor[left] = 0;
+  wait1Msec(100);
+  resetMotors = true;
+  wait1Msec(100);
+  nSyncedMotors = synchBC;
+  nSyncedTurnRatio = 0;
+  motor[right] = 45;
+  while(nMotorEncoder[right] <= 740) {}
+  motor[right] = 0;
 }
 
 void turnRightL()
@@ -512,7 +525,7 @@ void turnRightL()
   nSyncedMotors = synchCB;
   nSyncedTurnRatio = 0;
   motor[left] = 45;
-  while(nMotorEncoder[left] <= 740) {}
+  while(nMotorEncoder[left] <= 710) {}
   motor[left] = 0;
 }
 
@@ -577,11 +590,11 @@ void parkLeft()
   nMotorPIDSpeedCtrl[left] = mtrSpeedReg;
   nMotorPIDSpeedCtrl[right] = mtrSpeedReg;
   motor[left] = -45;
-  while(nMotorEncoder[left] > -250) {}
+  while(nMotorEncoder[left] > -130) {}
   motor[left] = 0;
   wait1Msec(250);
   motor[right] = -45;
-  while(nMotorEncoder[right] > -225) {}
+  while(nMotorEncoder[right] > -125) {}
   motor[right] = 0;
   wait1Msec(10);
   resetMotors = true;
@@ -595,7 +608,7 @@ void parkLeft()
   nSyncedMotors = synchCB;
   nSyncedTurnRatio = 10;
   motor[right] = -35;
-  while(nMotorEncoder[right] > -950) {}
+  while(nMotorEncoder[right] > -750) {}
   motor[right] = 0;
 }
 
@@ -621,11 +634,11 @@ void parkRight()
   nMotorPIDSpeedCtrl[left] = mtrSpeedReg;
   nMotorPIDSpeedCtrl[right] = mtrSpeedReg;
   motor[right] = -35;
-  while(nMotorEncoder[right] > -250) {}
+  while(nMotorEncoder[right] > -130) {}
   motor[right] = 0;
   wait1Msec(250);
   motor[left] = -35;
-  while(nMotorEncoder[left] > -225) {}
+  while(nMotorEncoder[left] > -125) {}
   motor[left] = 0;
   wait1Msec(10);
   resetMotors = true;
@@ -639,7 +652,7 @@ void parkRight()
   nSyncedMotors = synchBC;
   nSyncedTurnRatio = 10;
   motor[left] = -35;
-  while(nMotorEncoder[left] > -950) {}
+  while(nMotorEncoder[left] > -750) {}
   motor[left] = 0;
 }
 void exit()
