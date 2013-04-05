@@ -44,13 +44,13 @@ void intDirections() //feed the directions into the array
 {
   directions[0][0] = 120;
   directions[1][0] = 310;
-  directions[2][0] = 721;
+  directions[2][0] = 722;
   directions[3][0] = 310;
   directions[4][0] = 310;
   directions[5][0] = 520;
   directions[6][0] = 320;
   directions[7][0] = 611;
-  directions[8][0] = 320;
+  directions[8][0] = 310;
   //.....
   //0**=start/end program;
   //1**=straight;
@@ -178,6 +178,8 @@ task main()
       	writeDebugStreamLine("stopsensor: %d", stopSensor);
         wait1Msec(10); // keep following the line
       }
+      writeDebugStreamLine("!!!STOPPED AT: %d", stopSensor);
+      PlaySound(soundBeepBeep);
 	    lineFollow = false;
 	    targetDPS = 0;
 	    wait1Msec(500);
@@ -353,7 +355,7 @@ task sensors()
       switch (SensorValue[colorLeft])
       {
       case BLACKCOLOR:		stopSensor = 1;			break;
-      case BLUECOLOR:			stopSensor= 2;			break;
+      case BLUECOLOR:			stopSensor = 2;			break;
       case GREENCOLOR:		stopSensor = 3;			break;
       case YELLOWCOLOR:		stopSensor = 4;		 break;
       case REDCOLOR:			stopSensor = 5;				break;
@@ -607,7 +609,7 @@ void parkLeft()
   nMotorPIDSpeedCtrl[right] = mtrSpeedReg;
   nSyncedMotors = synchCB;
   nSyncedTurnRatio = 10;
-  motor[right] = -35;
+  motor[right] = -50;
   while(nMotorEncoder[right] > -750) {}
   motor[right] = 0;
 }
@@ -651,7 +653,7 @@ void parkRight()
   nMotorPIDSpeedCtrl[right] = mtrSpeedReg;
   nSyncedMotors = synchBC;
   nSyncedTurnRatio = 10;
-  motor[left] = -35;
+  motor[left] = -50;
   while(nMotorEncoder[left] > -750) {}
   motor[left] = 0;
 }
@@ -676,11 +678,11 @@ void exit()
   wait1Msec(10);
   nMotorPIDSpeedCtrl[left] = mtrSpeedReg;
   nMotorPIDSpeedCtrl[right] = mtrSpeedReg;
-  motor[left] = -35;
+  motor[left] = -45;
   while(nMotorEncoder[left] > -200) {}
   motor[left] = 0;
   wait1Msec(500);
-  motor[right] = -35;
+  motor[right] = -45;
   while(nMotorEncoder[right] > -200) {}
   motor[right] = 0;
   wait1Msec(10);
