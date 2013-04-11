@@ -1,3 +1,9 @@
+/*------------------------------------------------------------------------
+			2013_master.c
+			Written for ROBOTC NXT 3.60
+			Property of BCCS Robotics team nKISA
+			Updated at https://github.com/mr64bit/2012-BCCS-ION-MUC
+------------------------------------------------------------------------*/
 #pragma config(Sensor, S3,     colorLeft,      sensorCOLORFULL)
 #pragma config(Sensor, S2,     colorRight,     sensorCOLORFULL)
 #pragma config(Motor,  motorC,          left,          tmotorNormal, openLoop, encoder)
@@ -20,10 +26,6 @@ int targetDPS = 0;
 int lastPos = 0;
 int lineReading = 0;
 int sonar = 0;
-//int directions[dirIndex][1] = 0;
-//int directions[dirIndex][2] = 0;
-//int directions[dirIndex][3] = 0;
-//int directions[dirIndex-1][1] = 0;
 int nAtoDValues[3]={0,0,0};
 int red = 0, green = 0, blue = 0;
 int stopSensor, lineSensor, lineColor;
